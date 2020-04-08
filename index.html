@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chroma Key</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        /* good enough */
+        canvas {
+            width: 80%;
+            padding: 2%;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Chroma Key Project</h1>
+    <div class="container">
+    </div>
+    <script>
+        const distance = (x1, y1, z1, x2, y2, z2) => Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2))
+        let maxDist = 100
+        console.log("distance < ", maxDist)
+        // Yay.  forgot important detail image needs to be loaded first!
+        window.onload = function () {
+            // Get images
+            const green = new Image();
+            const sunset = new Image();
+
+            green.src = "./green.jpg"
+            green.width = 300
+            green.height = 250
+
+            sunset.src = "./sunset.jpg"
+            sunset.width = 300
+            sunset.height = 250
+
+            sunset.onload = function () {
+                console.log("image loaded")
+                loaded()
+            }
+            green.onload = function () {
+                console.log("image loaded")
+                loaded()
+            }
+            let calls = 0
+            function loaded() {
+                calls++
+                if (calls >= 2) {
+                    const container = document.getElementsByClassName('container')[0]
+                    // Create canvas
+                    let greenCanvas = document.createElement('canvas')
+                    greenCanvas.height = green.height
+                    greenCanvas.width = green.width
+                    greenCanvas.getContext('2d').drawImage(green, 0, 0, green.width, green.height)
+                    container.appendChild(greenCanvas)
+
+                    let targetImageCanvas = document.createElement('canvas')
+                    targetImageCanvas.height = green.height
+                    targetImageCanvas.width = green.width
+                    targetImageCanvas.getContext('2d').drawImage(sunset, 0, 0, sunset.width, sunset.height)
+                    container.appendChild(targetImageCanvas)
+
+                    // Get image data
+                    let greenCanvasPixels = greenCanvas.getContext('2d').getImageData(0, 0, green.width, green.height)
+                    let targetCanvasPixels = targetImageCanvas.getContext('2d').getImageData(0, 0, sunset.width, sunset.height)
+                    console.log(greenCanvasPixels)
+                    console.log(targetCanvasPixels)
+
+                    // filter RGBA *rgb(14, 207, 89)*
+                    // similarity 
+                    let locations = []
+                    for (let i = 0; i < greenCanvasPixels.data.length; i += 4) {
+                        const dist = distance(greenCanvasPixels.data[i], greenCanvasPixels.data[i + 1], greenCanvasPixels.data[i + 2], 14, 207, 89);
+                        if (dist < maxDist) {
+                            locations.push(i)
+                        }
+                    }
+
+                    for (let i = 0; i < locations.length; i++) {
+                        greenCanvasPixels.data[locations[i]] = targetCanvasPixels.data[locations[i]]
+                        greenCanvasPixels.data[locations[i] + 1] = targetCanvasPixels.data[locations[i] + 1]
+                        greenCanvasPixels.data[locations[i] + 2] = targetCanvasPixels.data[locations[i] + 2]
+                    }
+
+                    greenCanvas.getContext('2d').putImageData(greenCanvasPixels, 0, 0)
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
