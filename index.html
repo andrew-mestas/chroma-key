@@ -11,6 +11,20 @@
             flex-direction: column-reverse;
         }
 
+        .controls {
+            display: flex;
+        }
+
+        .row {
+            flex-direction: row;
+        }
+
+        .col {
+            flex-direction: column;
+        }
+        .center{
+            align-self: center;
+        }
         /* good enough */
         canvas {
             width: 80%;
@@ -21,77 +35,117 @@
 
 <body>
     <h1>Chroma Key Project</h1>
-    <div class="container">
+    <div class="container"></div>
+    <div class="controls col">
+        <div class="row center">
+            <label for="image-green">Starting image</label>
+            <input id="image-green" type="file" onchange="imageReady(this, 'startingImage')">
+            <label for="image-fill">Fill image</label>
+            <input id="image-fill" onchange="imageReady(this, 'fillImage')" type="file">
+        </div>
+        <div class="row center">
+            <input type="color" id="keyColor">
+            <label for="distance">Matching threshold</label>
+            <input type="number" min="0" max="1000" step="10" value="10" id="distance" onchange="threshold(this)">
+            <button id="submit">Chroma Key</button>
+        </div>
     </div>
     <script>
         const distance = (x1, y1, z1, x2, y2, z2) => Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2))
-        let maxDist = 100
-        console.log("distance < ", maxDist)
-        // Yay.  forgot important detail image needs to be loaded first!
-        window.onload = function () {
+        let maxDist = 10
+        let startingImage = null
+        let fillImage = null
+        let defaultColor = { r: 0, g: 255, b: 0 }
+        const container = document.getElementsByClassName('container')[0]
+        let staringImageCanvas = document.createElement('canvas')
+        let targetImageCanvas = document.createElement('canvas')
+        let startCtx = staringImageCanvas.getContext('2d')
+        let targetCtx = targetImageCanvas.getContext('2d')
+        document.getElementById('submit').addEventListener('click', () => { chromaKey() })
+        document.getElementById('keyColor').addEventListener('change', updateColor)
+
+        function threshold(e) {
+            maxDist = e.value
+        }
+
+        function updateColor(e) {
+            defaultColor = hexToRgb(e.target.value)
+        }
+
+        function imageReady(input, name) {
+            let reader = new FileReader();
+
+            switch (name) {
+                case 'startingImage': reader.onload = () => {
+                    startingImage = new Image()
+                    startingImage.src = reader.result
+                    startingImage.onload = loaded;
+                }
+                    break;
+                case 'fillImage': reader.onload = () => {
+                    fillImage = new Image()
+                    fillImage.src = reader.result
+                    fillImage.onload = loaded;
+                }
+                    break;
+            }
+            reader.readAsDataURL(input.files[0])
+
+        }
+
+        function loaded() {
+            if (startingImage === null || fillImage === null) return
             // Get images
-            const green = new Image();
-            const sunset = new Image();
+            startingImage.width = 300
+            startingImage.height = 250
 
-            green.src = "./green.jpg"
-            green.width = 300
-            green.height = 250
+            fillImage.width = 300
+            fillImage.height = 250
 
-            sunset.src = "./sunset.jpg"
-            sunset.width = 300
-            sunset.height = 250
+            // Create canvas
+            staringImageCanvas.height = startingImage.height
+            staringImageCanvas.width = startingImage.width
+            startCtx.drawImage(startingImage, 0, 0, startingImage.width, startingImage.height)
+            container.appendChild(staringImageCanvas)
 
-            sunset.onload = function () {
-                console.log("image loaded")
-                loaded()
-            }
-            green.onload = function () {
-                console.log("image loaded")
-                loaded()
-            }
-            let calls = 0
-            function loaded() {
-                calls++
-                if (calls >= 2) {
-                    const container = document.getElementsByClassName('container')[0]
-                    // Create canvas
-                    let greenCanvas = document.createElement('canvas')
-                    greenCanvas.height = green.height
-                    greenCanvas.width = green.width
-                    greenCanvas.getContext('2d').drawImage(green, 0, 0, green.width, green.height)
-                    container.appendChild(greenCanvas)
+            targetImageCanvas.height = startingImage.height
+            targetImageCanvas.width = startingImage.width
+            targetCtx.drawImage(fillImage, 0, 0, fillImage.width, fillImage.height)
+            container.appendChild(targetImageCanvas)
+        }
 
-                    let targetImageCanvas = document.createElement('canvas')
-                    targetImageCanvas.height = green.height
-                    targetImageCanvas.width = green.width
-                    targetImageCanvas.getContext('2d').drawImage(sunset, 0, 0, sunset.width, sunset.height)
-                    container.appendChild(targetImageCanvas)
+        function chromaKey() {
 
-                    // Get image data
-                    let greenCanvasPixels = greenCanvas.getContext('2d').getImageData(0, 0, green.width, green.height)
-                    let targetCanvasPixels = targetImageCanvas.getContext('2d').getImageData(0, 0, sunset.width, sunset.height)
-                    console.log(greenCanvasPixels)
-                    console.log(targetCanvasPixels)
+            // Get image data
+            let staringImageCanvasPixels = startCtx.getImageData(0, 0, startingImage.width, startingImage.height)
+            let targetCanvasPixels = targetCtx.getImageData(0, 0, fillImage.width, fillImage.height)
 
-                    // filter RGBA *rgb(14, 207, 89)*
-                    // similarity 
-                    let locations = []
-                    for (let i = 0; i < greenCanvasPixels.data.length; i += 4) {
-                        const dist = distance(greenCanvasPixels.data[i], greenCanvasPixels.data[i + 1], greenCanvasPixels.data[i + 2], 14, 207, 89);
-                        if (dist < maxDist) {
-                            locations.push(i)
-                        }
-                    }
-
-                    for (let i = 0; i < locations.length; i++) {
-                        greenCanvasPixels.data[locations[i]] = targetCanvasPixels.data[locations[i]]
-                        greenCanvasPixels.data[locations[i] + 1] = targetCanvasPixels.data[locations[i] + 1]
-                        greenCanvasPixels.data[locations[i] + 2] = targetCanvasPixels.data[locations[i] + 2]
-                    }
-
-                    greenCanvas.getContext('2d').putImageData(greenCanvasPixels, 0, 0)
+            // filter RGBA *rgb(14, 207, 89)*
+            // similarity 
+            let locations = []
+            for (let i = 0; i < staringImageCanvasPixels.data.length; i += 4) {
+                const dist = distance(staringImageCanvasPixels.data[i], staringImageCanvasPixels.data[i + 1], staringImageCanvasPixels.data[i + 2], defaultColor.r, defaultColor.g, defaultColor.b);
+                if (dist < maxDist) {
+                    locations.push(i)
                 }
             }
+
+            for (let i = 0; i < locations.length; i++) {
+                staringImageCanvasPixels.data[locations[i]] = targetCanvasPixels.data[locations[i]]
+                staringImageCanvasPixels.data[locations[i] + 1] = targetCanvasPixels.data[locations[i] + 1]
+                staringImageCanvasPixels.data[locations[i] + 2] = targetCanvasPixels.data[locations[i] + 2]
+            }
+
+            startCtx.putImageData(staringImageCanvasPixels, 0, 0)
+        }
+        // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+        function hexToRgb(hex) {
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
         }
     </script>
 </body>
