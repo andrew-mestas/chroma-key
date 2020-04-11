@@ -4,140 +4,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="#" />
+    <link rel="stylesheet" href="Skeleton-2.0.4/css/normalize.css">
+    <link rel="stylesheet" href="Skeleton-2.0.4/css/skeleton.css">
     <title>Chroma Key</title>
-    <style>
-        .container {
-            display: flex;
-            flex-direction: column-reverse;
-        }
-
-        .controls {
-            display: flex;
-        }
-
-        .row {
-            flex-direction: row;
-        }
-
-        .col {
-            flex-direction: column;
-        }
-        .center{
-            align-self: center;
-        }
-        /* good enough */
-        canvas {
-            width: 80%;
-            padding: 2%;
-        }
-    </style>
+    <!-- https://colors.eva.design/ -->
 </head>
 
 <body>
-    <h1>Chroma Key Project</h1>
-    <div class="container"></div>
-    <div class="controls col">
-        <div class="row center">
-            <label for="image-green">Starting image</label>
-            <input id="image-green" type="file" onchange="imageReady(this, 'startingImage')">
-            <label for="image-fill">Fill image</label>
-            <input id="image-fill" onchange="imageReady(this, 'fillImage')" type="file">
+    <script>
+        const threshold = (e) => maxDist = e.value
+        const changeHeight = (e) => targetHeight = e.value
+        const changeWidth = (e) => targetWidth = e.value
+        const updateColor = (e) => defaultColor = hexToRgb(e.target.value)
+        const distance = (x1, y1, z1, x2, y2, z2) => Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2))
+    </script>
+    <!-- http://tholman.com/github-corners/ -->
+    <a href="https://your-url" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#FF8D14; color:#28282A; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+    <div class="container">
+        <h2>Chroma Key Project</h2>
+        <hr>
+        <h5>A quick demonstration of the capabilities of vanilla javascript.</h5>
+        <ol>
+            <li>Choose video</li>
+            <li>Choose fill image</li>
+            <li>Select correct key color</li>
+            <li>Tweak settings</li>
+            <ul>
+                <li>Matching threshold - for color matching</li>
+                <li>Height and width - video and picture will be scaled to same dimenstions</li>
+            </ul>
+            <li>Press play!</li>
+        </ol>
+        <hr>
+        <div class="row">
+            <div class="four columns">
+                <h4>Source video</h4>
+                <video controls id="video"></video>
+            </div>
+            <div class="four columns" id="image-holder">
+                <h4>Fill image</h4>
+            </div>
+            <div class="four columns" id="video-output">
+                <h4>Output</h4>
+            </div>
         </div>
-        <div class="row center">
-            <input type="color" id="keyColor">
-            <label for="distance">Matching threshold</label>
-            <input type="number" min="0" max="1000" step="10" value="10" id="distance" onchange="threshold(this)">
-            <button id="submit">Chroma Key</button>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div>
+                <hr>
+            </div>
+        </div>
+        <div class="row">
+            <div class="one-third column">
+                <label for="video-green">Base Video</label>
+                <input id="video-green" onchange="videoReady(this)" type="file">
+            </div>
+            <div class="one-third column">
+                <label for="image-fill">Fill image</label>
+                <input id="image-fill" onchange="imageReady(this)" type="file">
+            </div>
+            <div class="one-third column">
+                <label for="keyColor">Key Color</label>
+                <input type="color" value="#00FF00" id="keyColor">
+            </div>
+        </div>
+        <div class="row">
+            <div class="one-third column">
+                <label for="distance">Matching threshold</label>
+                <input type="number" min="0" max="1000" step="10" value="180" id="distance" onchange="threshold(this)">
+            </div>
+            <div class="one-third column">
+                <label for="target-height">Target Height</label>
+                <input type="number" min="0" max="2000" step="10" value="250" id="target-height"
+                    onchange="changeHeight(this)">
+            </div>
+            <div class="one-third column">
+                <label for="target-width">Target Width</label>
+                <input type="number" min="0" max="2000" step="10" value="300" id="target-width"
+                    onchange="changeWidth(this)">
+            </div>
         </div>
     </div>
     <script>
-        const distance = (x1, y1, z1, x2, y2, z2) => Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2))
-        let maxDist = 10
-        let startingImage = null
+        let maxDist = 180
+        let targetHeight = 250
+        let targetWidth = 300
         let fillImage = null
         let defaultColor = { r: 0, g: 255, b: 0 }
+
+        const video = document.getElementById('video')
+        const imageHolder = document.getElementById('image-holder')
+        const videoOutput = document.getElementById('video-output')
         const container = document.getElementsByClassName('container')[0]
-        let staringImageCanvas = document.createElement('canvas')
-        let targetImageCanvas = document.createElement('canvas')
-        let startCtx = staringImageCanvas.getContext('2d')
-        let targetCtx = targetImageCanvas.getContext('2d')
-        document.getElementById('submit').addEventListener('click', () => { chromaKey() })
+        const targetImageCanvas = document.createElement('canvas')
+        const videoCanvas = document.createElement('canvas')
+        const targetCtx = targetImageCanvas.getContext('2d')
+        const videoCtx = videoCanvas.getContext('2d')
+
         document.getElementById('keyColor').addEventListener('change', updateColor)
 
-        function threshold(e) {
-            maxDist = e.value
+        const applyEffectsToVideo = (w, h) => {
+            if (video.paused || video.ended) return
+            videoCtx.drawImage(video, 0, 0, w, h)
+            videoCtx.putImageData(chromaKeyGeneral(videoCtx.getImageData(0, 0, w, h)), 0, 0)
+            window.requestAnimationFrame(() => applyEffectsToVideo(w, h))
         }
 
-        function updateColor(e) {
-            defaultColor = hexToRgb(e.target.value)
+        function videoReady(input) {
+            const videoName = input.files[0].name
+            video.src = videoName;
+            video.load()
+            video.height = targetHeight
+            video.width = targetWidth
+            video.onloadeddata = function () {
+                videoCanvas.height = targetHeight
+                videoCanvas.width = targetWidth
+                videoOutput.appendChild(videoCanvas);
+            }
+            video.addEventListener('play', function () {
+                applyEffectsToVideo(targetWidth, targetHeight)
+            })
         }
 
-        function imageReady(input, name) {
-            let reader = new FileReader();
-
-            switch (name) {
-                case 'startingImage': reader.onload = () => {
-                    startingImage = new Image()
-                    startingImage.src = reader.result
-                    startingImage.onload = loaded;
-                }
-                    break;
-                case 'fillImage': reader.onload = () => {
-                    fillImage = new Image()
-                    fillImage.src = reader.result
-                    fillImage.onload = loaded;
-                }
-                    break;
+        function imageReady(input) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                fillImage = new Image()
+                fillImage.src = reader.result
+                fillImage.onload = loaded;
+                fillImage.width = targetWidth
+                fillImage.height = targetHeight
             }
             reader.readAsDataURL(input.files[0])
-
         }
 
         function loaded() {
-            if (startingImage === null || fillImage === null) return
-            // Get images
-            startingImage.width = 300
-            startingImage.height = 250
-
-            fillImage.width = 300
-            fillImage.height = 250
-
-            // Create canvas
-            staringImageCanvas.height = startingImage.height
-            staringImageCanvas.width = startingImage.width
-            startCtx.drawImage(startingImage, 0, 0, startingImage.width, startingImage.height)
-            container.appendChild(staringImageCanvas)
-
-            targetImageCanvas.height = startingImage.height
-            targetImageCanvas.width = startingImage.width
+            targetImageCanvas.height = targetHeight
+            targetImageCanvas.width = targetWidth
             targetCtx.drawImage(fillImage, 0, 0, fillImage.width, fillImage.height)
-            container.appendChild(targetImageCanvas)
+            imageHolder.appendChild(targetImageCanvas)
         }
 
-        function chromaKey() {
-
-            // Get image data
-            let staringImageCanvasPixels = startCtx.getImageData(0, 0, startingImage.width, startingImage.height)
+        function chromaKeyGeneral(data) {
+            // Get target pixels
             let targetCanvasPixels = targetCtx.getImageData(0, 0, fillImage.width, fillImage.height)
-
-            // filter RGBA *rgb(14, 207, 89)*
-            // similarity 
             let locations = []
-            for (let i = 0; i < staringImageCanvasPixels.data.length; i += 4) {
-                const dist = distance(staringImageCanvasPixels.data[i], staringImageCanvasPixels.data[i + 1], staringImageCanvasPixels.data[i + 2], defaultColor.r, defaultColor.g, defaultColor.b);
+            // Find close color matches
+            for (let i = 0; i < data.data.length; i += 4) {
+                const dist = distance(data.data[i], data.data[i + 1], data.data[i + 2], defaultColor.r, defaultColor.g, defaultColor.b);
                 if (dist < maxDist) {
                     locations.push(i)
                 }
             }
-
+            // Replace pixels from source to target
             for (let i = 0; i < locations.length; i++) {
-                staringImageCanvasPixels.data[locations[i]] = targetCanvasPixels.data[locations[i]]
-                staringImageCanvasPixels.data[locations[i] + 1] = targetCanvasPixels.data[locations[i] + 1]
-                staringImageCanvasPixels.data[locations[i] + 2] = targetCanvasPixels.data[locations[i] + 2]
+                data.data[locations[i]] = targetCanvasPixels.data[locations[i]]
+                data.data[locations[i] + 1] = targetCanvasPixels.data[locations[i] + 1]
+                data.data[locations[i] + 2] = targetCanvasPixels.data[locations[i] + 2]
             }
-
-            startCtx.putImageData(staringImageCanvasPixels, 0, 0)
+            return data
         }
+
         // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
         function hexToRgb(hex) {
             var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
